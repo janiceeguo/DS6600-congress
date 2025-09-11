@@ -1,0 +1,23 @@
+services:
+  jupyterlab:
+    image: jupyterdocker
+    env_file:
+      - .env
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./:/DS6600-congress
+
+  postgres:
+    image: postgres:latest
+    env_file:
+      - .env
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgresdata:/var/lib/postgresql/18/docker
+
+volumes:
+  postgresdata:
+
+# networks:
