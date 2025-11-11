@@ -11,26 +11,26 @@ services:
       - dbnetwork
 
   postgres:
-    image: postgres:latest
+    image: postgres:17.6
     env_file:
       - .env
     ports:
       - "5433:5432"
     volumes:
-      - postgresdata:/var/lib/postgresql/18/docker
+      - postgresdata:/var/lib/postgresql/data
     networks:
       - dbnetwork
 
-  mysql:
-    image: mysql
-    env_file:
-      - .env
-    ports:
-      - "3307:3306"
-    volumes:
-      - mysqldata:/var/lib/mysql
-    networks:
-      - dbnetwork
+  # mysql:
+  #   image: mysql
+  #   env_file:
+  #     - .env
+  #   ports:
+  #     - "3307:3306"
+  #   volumes:
+  #     - mysqldata:/var/lib/mysql
+  #   networks:
+  #     - dbnetwork
   
   mongo:
     image: mongo
