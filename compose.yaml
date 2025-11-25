@@ -1,14 +1,26 @@
 services:
-  jupyterlab:
-    image: jupyterdocker
+  dashboard:
+    image: dashboard
     env_file:
       - .env
     ports:
-      - "8888:8888"
+      - "8050:8050"
     volumes:
       - ./:/DS6600-congress
     networks:
       - dbnetwork
+
+
+  # jupyterlab:
+  #   image: jupyterdocker
+  #   env_file:
+  #     - .env
+  #   ports:
+  #     - "8888:8888"
+  #   volumes:
+  #     - ./:/DS6600-congress
+  #   networks:
+  #     - dbnetwork
 
   postgres:
     image: postgres:17.6
@@ -45,7 +57,7 @@ services:
 
 volumes:
   postgresdata:
-  mysqldata:
+  # mysqldata:
   mongodata:
 
 networks:

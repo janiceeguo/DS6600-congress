@@ -4,5 +4,5 @@ FROM python:3.13.7-trixie
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 WORKDIR /DS6600-congress
-EXPOSE 8888
-CMD ["jupyter", "lab","--ip=0.0.0.0","--allow-root"]
+EXPOSE 8050
+CMD ["python", "app/app.py"]
