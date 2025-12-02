@@ -51,14 +51,16 @@ app.layout = html.Div(
         html.H1('Know Your Representatives in Congress!'),
         html.Div([
             dcc.Markdown('''If you know your Representative or Senators, select them in the dropbox below. If you want to lookup who your rpresentatives are, check out [this website](https://www.congress.gov/members/find-your-member).'''),
-            dcc.Dropdown(id='dropdown', options=dropdown_options)], # Step 1: get user input
+            dcc.Dropdown(id='dropdown', options=dropdown_options, value='N000188')], # Step 1: get user input
             style={'width':'25%', 'float':'left'}),
         html.Div([
             dcc.Tabs([
-                dcc.Tab(label = 'Biographical Information',
-                        children = [dcc.Graph(id='biotable')]), # Step 5: display output on the dashboard
+                dcc.Tab(label = 'Biographical Information' ,
+                        children = [
+                            html.Div([html.Img(id='bioimage')], style={'width':'20%', 'float':'left'}),
+                            html.Div([dcc.Graph(id='biotable')], style={'width':'80%', 'float':'right'})]), # Step 5: display output on the dashboard
                 dcc.Tab(label = 'How They Vote',
-                        children = []),
+                        children = [dcc.Graph(id='vote_scatter')]),
                 dcc.Tab(label = 'Sponsored Bills', children = []),
                 dcc.Tab(label = 'Who is Giving Them Money?', children = [])])],
             style={'width':'75%', 'float':'right'})
@@ -69,17 +71,55 @@ app.layout = html.Div(
 # Define the 'callbacks' -- user input -> output functions
 @app.callback([Output(component_id='biotable', component_property='figure')], # Step 4: Output()
               [Input(component_id='dropdown', component_property='value')]) # Step 2: Input()
+
 def biotable(b): # Step 3: write a function that turns input into output
     my_query = f'''
-    SELECT *
-    FROM members
-    WHERE bioguide_id = '{b}'
+        SELECT *
+        FROM members
+        WHERE bioguide_id = '{b}'
     '''
-
     member_info = pd.read_sql(my_query, con=engine)
     member_info = member_info.drop(['bioguide_id', 'image', 'fec_id', 'bioname', 'icpsr'], axis = 1)
-    
     return [ff.create_table(member_info.T.reset_index().rename({'index': '', 0: ''}, axis = 1))]
+
+@app.callback([Output(component_id='bioimage', component_property='src')],
+              [Input(component_id='dropdown', component_property='value')])
+
+def bioimage(b):
+    my_query = f'''
+        SELECT image
+        FROM members
+        WHERE bioguide_id = '{b}'
+    '''
+    image_url = pd.read_sql(my_query, con=engine)["image"][0]
+    return [image_url]
+
+@app.callback([Output(component_id='vote_scatter', component_property='figure')],
+              [Input(component_id='dropdown', component_property='value')])
+
+def vote_scatter(b):
+    my_query = f'''
+        SELECT 
+            c.comparison_member,
+            c.agree,
+            m.left_right_ideology,
+            m.party
+        FROM members m
+        INNER JOIN (
+            SELECT 
+                vc.comparison_member, 
+                vc.agree
+            FROM members m
+            INNER JOIN vote_compare vc
+                ON m.bioname = vc.bioname
+            WHERE m.bioguide_id = '{b}'
+        ) c
+            ON m.bioname = c.comparison_member
+    '''
+
+    votes =pd.read_sql(my_query, con=engine)
+    fig = px.scatter(votes, x = 'left_right_ideology', y = 'agree', color = 'party', color_discrete_map={'Democrat': 'blue', 'Republican': 'red'}, hover_name = 'comparison_member')
+    return [fig]
 
 # Run the dashboard
 if __name__=='__main__':
