@@ -52,7 +52,7 @@ app.layout = html.Div(
         html.Div([
             dcc.Markdown('''If you know your Representative or Senators, select them in the dropbox below. If you want to lookup who your rpresentatives are, check out [this website](https://www.congress.gov/members/find-your-member).'''),
             dcc.Dropdown(id='dropdown', options=dropdown_options, value='N000188')], # Step 1: get user input
-            style={'width':'25%', 'float':'left'}),
+            style={'width':'24%', 'float':'left'}),
         html.Div([
             dcc.Tabs([
                 dcc.Tab(label = 'Biographical Information' ,
@@ -61,9 +61,13 @@ app.layout = html.Div(
                             html.Div([dcc.Graph(id='biotable')], style={'width':'80%', 'float':'right'})]), # Step 5: display output on the dashboard
                 dcc.Tab(label = 'How They Vote',
                         children = [dcc.Graph(id='vote_scatter')]),
-                dcc.Tab(label = 'Sponsored Bills', children = []),
+                dcc.Tab(label = 'Sponsored Bills', children = [
+                    dcc.Markdown("**The following keywords and phrases describe this legislator's work in Congress:**"),
+                    dcc.Graph(id='tfidf_bar'),
+                    dcc.Markdown('**This legislator has sponsored the following bills:**'),
+                    dcc.Graph(id='bills_table')]),
                 dcc.Tab(label = 'Who is Giving Them Money?', children = [])])],
-            style={'width':'75%', 'float':'right'})
+            style={'width':'74%', 'float':'right'})
     ]
 )
 
@@ -119,6 +123,37 @@ def vote_scatter(b):
 
     votes =pd.read_sql(my_query, con=engine)
     fig = px.scatter(votes, x = 'left_right_ideology', y = 'agree', color = 'party', color_discrete_map={'Democrat': 'blue', 'Republican': 'red'}, hover_name = 'comparison_member')
+    return [fig]
+
+@app.callback([Output(component_id='bills_table', component_property='figure')],
+              [Input(component_id='dropdown', component_property='value')])
+
+def bills_table(b):
+    my_query = f'''
+        SELECT 
+            bill_title,
+            introducedDate,
+            url
+        FROM bills
+        WHERE bioguide_id = '{b}' and bill_title != 'None'
+    '''
+    bills = pd.read_sql(my_query, con=engine)
+    return [ff.create_table(bills)]
+
+@app.callback([Output(component_id='tfidf_bar', component_property='figure')],
+              [Input(component_id='dropdown', component_property='value')])
+
+def tfidf_bar(b):
+    my_query = f'''
+        SELECT *
+        FROM tfidf
+        WHERE bioguide_id = '{b}'
+        ORDER BY tf_idf
+    '''
+
+    tfidf_data = pd.read_sql(my_query, con=engine)
+    fig = px.bar(tfidf_data, y='keyword', x='tf_idf', color='tf_idf')
+    fig.update_layout(yaxis_title='Keywords or Phrases', xaxis_title='TF-IDF')
     return [fig]
 
 # Run the dashboard
